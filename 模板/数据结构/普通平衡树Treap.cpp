@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
 
+#define lc t[p].l
+#define rc t[p].r
+
 inline int get_num() {
 	int num = 0, flag = 1;
 	char c = getchar();
@@ -17,8 +20,6 @@ const int maxn = 1e5 + 5, inf = 0x3f3f3f3f;
 
 struct Treap {
 	int l, r, val, key, cnt, size;
-	#define lc t[p].l
-	#define rc t[p].r
 } t[maxn];
 
 int tot, root;
@@ -64,8 +65,7 @@ void insert(int& p, int val) {
 	if (val < t[p].val) {
 		insert(lc, val);
 		if (t[lc].key > t[p].key) rturn(p);
-	}
-	else {
+	} else {
 		insert(rc, val);
 		if (t[rc].key > t[p].key) lturn(p);
 	}
@@ -137,9 +137,10 @@ inline int getnext(int val) {
 }
 
 int main() {
+	srand(220);
 	build();
 	int n = get_num();
-	for (int i = 1; i <= n; ++i) {
+	while (n--) {
 		int op = get_num(), x = get_num();
 		if (op == 1) insert(root, x);
 		else if (op == 2) remove(root, x);
