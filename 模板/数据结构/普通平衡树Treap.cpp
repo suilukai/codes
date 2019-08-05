@@ -37,8 +37,7 @@ inline void update(int p) {
 
 inline void build() {
 	add(-inf), add(inf);
-	root = 1, t[1].r = 2;
-	update(root);
+	root = 1, t[1].r = 2, ++t[1].size;
 }
 
 inline void rturn(int& p) {
@@ -84,6 +83,7 @@ void remove(int& p, int val) {
 			else lturn(p), remove(lc, val);
 			update(p);
 		} else p = 0;
+		return;
 	}
 	if (val < t[p].val) remove(lc, val);
 	else remove(rc, val);
@@ -91,8 +91,8 @@ void remove(int& p, int val) {
 }
 
 int getrank(int p, int val) {
-	if (val == t[p].val) return t[lc].size + 1;
 	if (val < t[p].val) return getrank(lc, val);
+	if (val == t[p].val) return t[lc].size + 1;
 	return getrank(rc, val) + t[lc].size + t[p].cnt;
 }
 
