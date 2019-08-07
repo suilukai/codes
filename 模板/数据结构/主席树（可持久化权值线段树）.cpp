@@ -25,24 +25,17 @@ struct ST {
 
 int tot, root[maxm];
 
-inline int update(int p) {
-	t[p].cnt = t[t[p].lc].cnt + t[t[p].rc].cnt;
-	return p;
-}
-
 int build(int l, int r) {
 	int p = ++tot;
-	if (l == r) {
-		t[p].cnt = 0;
-		return p;
-	}
+	t[p].cnt = 0;
+	if (l == r) return p;
 	int mid = (l + r) / 2;
 	t[p].lc = build(l, mid);
 	t[p].rc = build(mid + 1, r);
-	return update(p);
+	return p;
 }
 
-int add(int now, int l, int r, int x, int d) {
+int add(int now, int l, int r, int x) {
 	int p = ++tot;
 	t[p] = t[now];
 	if (l == r) {
@@ -50,9 +43,10 @@ int add(int now, int l, int r, int x, int d) {
 		return p;
 	}
 	int mid = (l + r) / 2;
-	if (x <= mid) t[p].lc = add(t[p].lc, l, mid, x, d);
-	else t[p].rc = add(t[p].rc, mid + 1, r, x, d);
-	return update(p);
+	if (x <= mid) t[p].lc = add(t[p].lc, l, mid, x);
+	else t[p].rc = add(t[p].rc, mid + 1, r, x);
+	t[p].cnt = t[t[p].lc].cnt + t[t[p].rc].cnt;
+	return p;
 }
 
 int query(int p, int q, int l, int r, int k) {
@@ -70,7 +64,7 @@ int main() {
 	root[0] = build(1, b[0]);
 	for (int i = 1; i <= n; ++i) {
 		a[i] = lower_bound(b + 1, b + b[0] + 1, a[i]) - b;
-		root[i] = add(root[i - 1], 1, b[0], a[i], 1);
+		root[i] = add(root[i - 1], 1, b[0], a[i]);
 	}
 	for (int i = 1; i <= m; ++i) {
 		int l = get_num(), r = get_num(), k = get_num();
