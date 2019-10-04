@@ -3,7 +3,7 @@
 
 using namespace std;
 
-inline int get_num() {
+inline int read() {
 	int num = 0;
 	char c = getchar();
 	while (c < '0' || c > '9') c = getchar();
@@ -27,36 +27,28 @@ inline void insert(int u, int v) {
 }
 
 int n, m, r, mod, a[maxn];
-int f[maxn], depth[maxn], size[maxn];
-int order[maxn], dfs_order[maxn], cnt, chain[maxn], first[maxn], tot;
+int f[maxn], depth[maxn], size[maxn], best[maxn];
+int seq[maxn], order[maxn], cnt, first[maxn];
 
-int dfs1(int u, int fa) {
-	f[u] = fa;
-	depth[u] = depth[fa] + 1;
-	size[u] = 1;
+void dfs1(int u, int fa) {
+	f[u] = fa, depth[u] = depth[fa] + 1, size[u] = 1;
 	for (int p = head[u]; p; p = edge[p].next) {
 		int v = edge[p].v;
-		if (v != fa) size[u] += dfs1(v, u);
+		if (v == fa) continue;
+		dfs1(v, u);
+		size[u] += size[v];
+		if (size[v] > size[best[u]]) best[u] = v;
 	}
-	return size[u];
 }
 
-void dfs2(int u, int fa, int ch) {
-	order[u] = ++cnt;
-	dfs_order[cnt] = u;
-	int id = 0;
+void dfs2(int u, int h) {
+	seq[++cnt] = u, order[u] = cnt, first[u] = h;
+	if (!best[u]) return;
+	dfs2(best[u], h);
 	for (int p = head[u]; p; p = edge[p].next) {
 		int v = edge[p].v;
-		if (v != fa && size[v] > size[id]) id = v;
-	}
-	if (!id) return;
-	chain[id] = ch, first[id] = first[u];
-	dfs2(id, u, ch);
-	for (int p = head[u]; p; p = edge[p].next) {
-		int v = edge[p].v;
-		if (v == fa || v == id) continue;
-		chain[v] = ++tot, first[v] = v;
-		dfs2(v, u, tot);
+		if (v == f[u] || v == best[u]) continue;
+		dfs2(v, v);
 	}
 }
 
@@ -69,106 +61,90 @@ inline void up(int p) {
 }
 
 inline void mark(int p, int d) {
-	t[p].sum = (t[p].sum + 1ll * d * (t[p].r - t[p].l + 1) % mod) % mod;
+	t[p].sum = (t[p].sum + 1ll * (t[p].r - t[p].l + 1) * d % mod) % mod;
 	t[p].add = (t[p].add + d) % mod;
 }
 
 inline void down(int p) {
 	if (t[p].add) {
-		mark(2 * p, t[p].add);
-		mark(2 * p + 1, t[p].add);
+		mark(2 * p, t[p].add), mark(2 * p + 1, t[p].add);
 		t[p].add = 0;
 	}
 }
 
 void build(int p, int l, int r) {
-	t[p].l = l, t[p].r = r;
-	t[p].add = 0;
+	t[p].l = l, t[p].r = r, t[p].add = 0;
 	if (l == r) {
-		t[p].sum = a[dfs_order[l]];
+		t[p].sum = a[seq[l]];
 		return;
 	}
-	int mid = (l + r) / 2;
+	int mid = (l + r) >> 1;
 	build(2 * p, l, mid);
 	build(2 * p + 1, mid + 1, r);
 	up(p);
 }
 
-void modify0(int p, int l, int r, int d) {
-	if (l <= t[p].l && t[p].r <= r) {
+void modify(int p, int x, int y, int d) {
+	if (x <= t[p].l && t[p].r <= y) {
 		mark(p, d);
 		return;
 	}
 	down(p);
-	int mid = (t[p].l + t[p].r) / 2;
-	if (l <= mid) modify0(2 * p, l, r, d);
-	if (r > mid) modify0(2 * p + 1, l, r, d);
+	int mid = (t[p].l + t[p].r) >> 1;
+	if (x <= mid) modify(2 * p, x, y, d);
+	if (y > mid) modify(2 * p + 1, x, y, d);
 	up(p);
 }
 
-int query0(int p, int l, int r) {
-	if (l <= t[p].l && t[p].r <= r) return t[p].sum;
+int query(int p, int x, int y) {
+	if (x <= t[p].l && t[p].r <= y) return t[p].sum;
 	down(p);
-	int mid = (t[p].l + t[p].r) / 2, sum = 0;
-	if (l <= mid) sum = (sum + query0(2 * p, l, r)) % mod;
-	if (r > mid) sum = (sum + query0(2 * p + 1, l, r)) % mod;
-	return sum;
+	int mid = (t[p].l + t[p].r) >> 1, ret = 0;
+	if (x <= mid) ret = (ret + query(2 * p, x, y)) % mod;
+	if (y > mid) ret = (ret + query(2 * p + 1, x, y)) % mod;
+	return ret;
 }
 
-inline void modify(int p1, int p2, int d) {
-	while (chain[p1] != chain[p2]) {
+inline void modify0(int p1, int p2, int d) {
+	while (first[p1] != first[p2]) {
 		if (depth[first[p1]] < depth[first[p2]]) swap(p1, p2);
-		int p = first[p1];
-		modify0(1, order[p], order[p1], d);
-		p1 = f[p];
+		modify(1, order[first[p1]], order[p1], d);
+		p1 = f[first[p1]];
 	}
 	if (depth[p1] > depth[p2]) swap(p1, p2);
-	modify0(1, order[p1], order[p2], d);
+	modify(1, order[p1], order[p2], d);
 }
 
-inline int query(int p1, int p2) {
-	int sum = 0;
-	while (chain[p1] != chain[p2]) {
+inline int query0(int p1, int p2) {
+	int ret = 0;
+	while (first[p1] != first[p2]) {
 		if (depth[first[p1]] < depth[first[p2]]) swap(p1, p2);
-		int p = first[p1];
-		sum = (sum + query0(1, order[p], order[p1])) % mod;
-		p1 = f[p];
+		ret = (ret + query(1, order[first[p1]], order[p1])) % mod;
+		p1 = f[first[p1]];
 	}
 	if (depth[p1] > depth[p2]) swap(p1, p2);
-	sum = (sum + query0(1, order[p1], order[p2])) % mod;
-	return sum;
+	ret = (ret + query(1, order[p1], order[p2])) % mod;
+	return ret;
 }
 
 int main() {
-	n = get_num(), m = get_num(), r = get_num(), mod = get_num();
-	for (int i = 1; i <= n; ++i) a[i] = get_num() % mod;
-	for (int i = 1; i <= n - 1; ++i) {
-		int u = get_num(), v = get_num();
-		insert(u, v);
-		insert(v, u);
+	n = read(), m = read(), r = read(), mod = read();
+	for (int i = 1; i <= n; ++i) a[i] = read() % mod;
+	for (int i = 1; i < n; ++i) {
+		int u = read(), v = read();
+		insert(u, v), insert(v, u);
 	}
 	dfs1(r, 0);
-	chain[r] = ++tot, first[r] = r;
-	dfs2(r, 0, tot);
+	dfs2(r, r);
 	build(1, 1, n);
-	for (int i = 1; i <= m; ++i) {
-		 int op = get_num();
-		 if (op == 1) {
-		 	int x = get_num(), y = get_num(), z = get_num();
-			modify(x, y, z);
-		 }
-		 else if (op == 2) {
-		 	int x = get_num(), y = get_num();
-			printf("%d\n", query(x, y));
-		 }
-		 else if (op == 3) {
-		 	int x = get_num(), z = get_num();
-			modify0(1, order[x], order[x] + size[x] - 1, z);
-		 }
-		 else {
-		 	int x = get_num();
-			printf("%d\n", query0(1, order[x], order[x] + size[x] - 1));
-		 }
+	while (m--) {
+		int op = read(), x, y, z;
+		switch(op) {
+		case 1: x = read(), y = read(), z = read(), modify0(x, y, z);break;
+		case 2: x = read(), y = read(), printf("%d\n", query0(x, y));break;
+		case 3: x = read(), z = read(), modify(1, order[x], order[x] + size[x] - 1, z);break;
+		case 4: x = read(), printf("%d\n", query(1, order[x], order[x] + size[x] - 1));break;
+		}
 	}
 	return 0;
 }
